@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "ubuntu/trusty64"
+  config.vm.box = "ubuntu/yakkety64"
   config.vm.network "forwarded_port", id: "http", guest: 80, host: 8080
 
   config.vm.provider "virtualbox" do |v|
@@ -22,9 +22,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
-  # disable chef and puppet as we are not using these from the base box
-  config.vm.provision :shell, :path => 'scripts/disable-chef.sh'
-  config.vm.provision :shell, :path => 'scripts/disable-chef.sh'
   # install bugzilla.
   config.vm.provision :shell, :path => 'scripts/install-bugzilla.sh'
 end
