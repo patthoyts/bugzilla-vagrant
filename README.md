@@ -19,7 +19,7 @@ folder on the server before 'checksetup.pl' is run.
  installation. This should not be used for production installations.
 
 Once the provisioning stage has completed the Bugzilla application
-will be running and just needs logging in as `admin@example.com` using
+will be running and just needs logging in as `admim` using
 password `password` (can be changed in the install-bugzilla.sh file).
 
 The box exports the guest port 80 to localhost port 8080 so the final

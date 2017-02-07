@@ -4,16 +4,12 @@
 # Update apt cache only after first boot.
 if [ ! -f /var/tmp/apt-updated ]
 then
-    touch /var/tmp/apt-updated
-    apt-get update
+    apt-get update --fix-missing && touch /var/tmp/apt-updated
 fi
 
-# Join the www-data and adm groups to facilitate debugging
-adduser vagrant www-data # enable access to bugzilla files
-adduser vagrant adm      # enable review of apache logs
-
 # Install prerequisite packages (using sqlite3 for development only)
-apt-get install -y perl sqlite3 git build-essential unzip apache2 apache2-mpm-prefork
+apt-get install -y perl sqlite3 git build-essential unzip apache2 \
+    cpanminus libexpat-dev libssl-dev
 
 # Install all perl packages from apt
 # Note: some may be behind the required version, see below.
@@ -34,9 +30,10 @@ git config --get user.name || git config --global user.name 'Vagrant User'
 git config --get user.email || git config --global user.email 'vagrant@example.com'
 
 # Checkout bugzilla from the git repository
+# (Moved to github: see https://wiki.mozilla.org/DeveloperServices/git
 if [ ! -d /opt/bugzilla ]
 then
-    git clone --branch master https://git.mozilla.org/bugzilla/bugzilla /opt/bugzilla
+    git clone --branch master https://github.com/bugzilla/bugzilla /opt/bugzilla
     cd /opt/bugzilla
 
     # Install any local extensions
@@ -66,11 +63,11 @@ Alias /Bugzilla /opt/bugzilla/
   Options +ExecCGI +FollowSymLinks
   SetEnv no-gzip 1
   DirectoryIndex index.cgi index.html
-  AllowOverride Limit FileInfo Indexes Options
+  AllowOverride Limit FileInfo Indexes Options AuthConfig
   Require all granted
 </Directory>
 EOF
-    a2enconf -q bugzilla && service apache2 reload
+    a2enconf -q bugzilla && systemctl restart apache2.service
 fi
 
 # Create a response file to avoid user input in bugzilla configuration
@@ -100,6 +97,7 @@ $answer{'mail_delivery_method'} = 'Test';
 $answer{'font_file'} = '';
 $answer{'webdotbase'} = '';
 $answer{'upgrade_notification'} = 'disabled';
+$answer{'ADMIN_LOGIN'} = 'admin';
 $answer{'ADMIN_EMAIL'} = 'admin@example.com';
 $answer{'ADMIN_PASSWORD'} = 'password';
 $answer{'ADMIN_REALNAME'} = 'Admin';
@@ -110,10 +108,7 @@ EOF
 # Configure and start bugzilla.
 (
   cd /opt/bugzilla
-  # NOTE: DateTime::TimeZone requires 1.64 for 5.1-devel but trusty's apt provides 1.63.
-  #       Email::Sender requires 1.300011 but trusty's apt provides 1.300010-1
-  perl -e 'use DateTime::TimeZone 1.64' 2>/dev/null || perl install-module.pl DateTime::TimeZone
-  perl -e 'use Email::Sender 1.300011' 2>/dev/null || perl install-module.pl Email::Sender
+  perl -w checksetup.pl /tmp/bugzilla.responses --cpanm
   perl -w checksetup.pl /tmp/bugzilla.responses
   echo "Provisioning complete."
   echo "Bugzilla available at http://localhost:8080/Bugzilla/"
